@@ -1,0 +1,32 @@
+import { defineConfig, devices } from "@playwright/test";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+export default defineConfig({
+  testDir: "./e2e",
+  fullyParallel: false,
+  workers: 1,
+  use: { baseURL: "http://127.0.0.1:5173", trace: "retain-on-failure" },
+  projects: [
+    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "mobile",
+      use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" },
+    },
+  ],
+  webServer: [
+    {
+      command:
+        "../.venv/bin/python -m uvicorn tests.browser_server:app --app-dir .. --host 127.0.0.1 --port 8000",
+      url: "http://127.0.0.1:8000/api/health",
+      env: { YTDLP_DATA_DIR: mkdtempSync(join(tmpdir(), "yt-dlp-browser-")) },
+      reuseExistingServer: false,
+    },
+    {
+      command: "npm run dev",
+      url: "http://127.0.0.1:5173",
+      reuseExistingServer: false,
+    },
+  ],
+});
