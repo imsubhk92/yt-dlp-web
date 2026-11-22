@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
+compose.override.yaml
 data/
 cookies*.txt
 frontend/node_modules/

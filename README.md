@@ -30,6 +30,55 @@ make dev
 
 Open **http://127.0.0.1:5173**. Vite proxies `/api` requests to FastAPI on port 8000. Both servers stop with Ctrl+C. Run only one API instance per data directory; avoid Uvicorn `--workers` and `--reload` while downloading. If `.tools/node/bin` exists, Make automatically uses that local Node installation.
 
+## Run with Docker
+
+Install Docker Engine with Compose, or Docker Desktop on macOS/Windows, then run:
+
+```sh
+make docker-up
+```
+
+This builds the React frontend and a Python 3.13 image containing Node 24, yt-dlp/EJS, FFmpeg, and FFprobe. A single FastAPI process serves both the UI and API at **http://127.0.0.1:8000**. Host Python, Node, and FFmpeg installations are not required for Docker. The service runs as a non-root user, publishes only to host loopback, and stores downloads and SQLite history in the persistent `yt-dlp-web_downloads` volume.
+
+```sh
+make docker-status                 # container and health status
+make docker-logs                   # follow application logs
+docker compose restart app         # restart without removing history/files
+make docker-down                   # stop/remove the container; retain its data volume
+```
+
+The `unless-stopped` restart policy brings the container back after process failure or a Docker engine restart. Docker itself must start after a system reboot. On Docker Desktop, enable **Settings → General → Start Docker Desktop when you sign in to your computer**; on macOS the app becomes available after sign-in and Docker startup, not before login. On Linux, enable the Docker system service at boot. An intentionally stopped/removed container stays stopped until you run `make docker-up` again. Health checks report readiness; an unhealthy status alone does not trigger a Docker restart. See [Docker restart policies](https://docs.docker.com/engine/containers/start-containers-automatically/) and [Desktop startup settings](https://docs.docker.com/desktop/settings-and-maintenance/settings/).
+
+Docker storage is separate from native `./data`. To import an existing native library **before the first Docker start**:
+
+```sh
+# Stop the native app first; the destination Docker data volume must be empty.
+docker compose build
+make docker-import-data
+make docker-up
+```
+
+The importer takes the native app lock, mounts the source read-only, copies media, backs up SQLite, and sets container ownership. It preserves the native files and refuses to overwrite a populated Docker volume. Do not run native and Docker instances on the same port. Avoid `docker compose down --volumes`: that explicitly deletes the Docker library.
+
+Concurrency, playlist limit, and inspection timeout can be set in `.env` using the same variables documented below; recreate the container with `make docker-up` after changing them. Container data and Node paths are fixed to their packaged locations. A host cookie-file path is not automatically passed into the container. To use cookies in Docker, copy the jar into its data volume and configure its **container** path:
+
+```sh
+docker compose cp /absolute/path/to/cookies.txt app:/app/data/cookies.txt
+docker compose exec --user root app chown 1000:1000 /app/data/cookies.txt
+docker compose exec --user root app chmod 600 /app/data/cookies.txt
+```
+
+Create a local `compose.override.yaml` containing the following, then run `make docker-up`:
+
+```yaml
+services:
+  app:
+    environment:
+      YTDLP_COOKIE_FILE: /app/data/cookies.txt
+```
+
+The jar stays outside the image and repository. Native cookie configuration and worker isolation behave as documented below.
+
 ## Download workflow
 
 1. Paste an HTTP(S) video or playlist URL and click **Find media**.
@@ -41,6 +90,8 @@ Open **http://127.0.0.1:5173**. Vite proxies `/api` requests to FastAPI on port 
 **MP4** selects H.264/AAC without transcoding. **Best quality** keeps source codecs and uses MKV for merged streams; a combined source file keeps its original container. **MP3** converts audio to 192 kbps. Source audio quality still determines the result. Resolution limits apply to the shorter dimension, including portrait videos. When direct-file metadata omits codecs or dimensions, the downloaded file is verified with FFprobe before being marked complete.
 
 Transfers use two download slots globally. Downloading and post-processing are separate phases; unknown byte totals remain indeterminate. A video-only transfer reaching its byte total does not mean merging is finished.
+
+Use **Color theme** in the header to choose **System**, **Light**, or **Dark**. System follows your device appearance, including changes while the app is open. An explicit choice is saved in your browser and synchronized across tabs. The initial page background is applied before React loads; if browser storage is blocked, theme changes still work for the current session. Theme selection does not reset your current download form or job history.
 
 ## Persistent storage and recovery
 
@@ -107,6 +158,8 @@ npm run test:e2e
 Backend tests cover selection, persistent queues, restart recovery, cancellation, partial playlist failures, retries, ZIP order/collisions, cookie isolation, file access, and dependency failures. The integration tests generate small local media files and use **real yt-dlp and FFmpeg** through a temporary loopback HTTP server. They require permissions to bind local sockets.
 
 Frontend tests cover selection, unavailable entries, preview invalidation, audio settings, and API errors. Playwright starts isolated API/Vite servers and tests the browser flow on desktop and mobile viewports. The browser server uses a deterministic fixture downloader; its media files are test data. Screenshots and traces are written under `frontend/test-results/`. Stop other services on ports 8000 and 5173 before running browser tests.
+
+Theme tests cover system changes, saved preferences, blocked storage, tab synchronization, and desktop/mobile reloads. The playlist/file/ZIP browser flow also runs in dark mode. Stop the Docker app with `make docker-down` before running the native browser suite because it uses the same port.
 
 Live YouTube downloads and real account cookies are separate external checks, not part of deterministic test coverage.
 

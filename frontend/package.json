@@ -10,8 +10,8 @@
     "dev": "vite --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "check": "tsc -b --pretty false && prettier --check src vite.config.ts playwright.config.ts e2e",
-    "format": "prettier --write src vite.config.ts playwright.config.ts e2e",
+    "check": "tsc -b --pretty false && prettier --check src public index.html vite.config.ts playwright.config.ts e2e",
+    "format": "prettier --write src public index.html vite.config.ts playwright.config.ts e2e",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },

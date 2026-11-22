@@ -30,6 +30,7 @@ import {
   Zap,
 } from "lucide-react";
 import { api, bytes, duration } from "./api";
+import ThemeControl from "./ThemeControl";
 import {
   terminal,
   type Health,
@@ -475,9 +476,12 @@ export default function App() {
               )}
             </button>
           </nav>
-          <div className="local-badge">
-            <span className={health?.ready ? "live-dot green" : "live-dot"} />
-            Running locally
+          <div className="header-actions">
+            <div className="local-badge">
+              <span className={health?.ready ? "live-dot green" : "live-dot"} />
+              Running locally
+            </div>
+            <ThemeControl />
           </div>
         </div>
       </header>

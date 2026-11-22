@@ -1,0 +1,27 @@
+name: yt-dlp-web
+
+services:
+  app:
+    build: .
+    image: yt-dlp-web:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      YTDLP_DATA_DIR: /app/data
+      YTDLP_NODE_PATH: /usr/local/bin/node
+      YTDLP_CONCURRENCY: ${YTDLP_CONCURRENCY:-2}
+      YTDLP_PLAYLIST_LIMIT: ${YTDLP_PLAYLIST_LIMIT:-500}
+      YTDLP_INSPECT_TIMEOUT: ${YTDLP_INSPECT_TIMEOUT:-60}
+    volumes:
+      - downloads:/app/data
+    stop_grace_period: 35s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  downloads:

@@ -1,4 +1,4 @@
-.PHONY: setup dev api build start check test
+.PHONY: setup dev api build start check test docker-up docker-down docker-logs docker-status docker-import-data
 export PATH := $(CURDIR)/.tools/node/bin:$(PATH)
 setup:
 	uv sync --locked
@@ -16,3 +16,13 @@ check:
 	cd frontend && npm run check && npm run test && npm run build
 test:
 	uv run pytest
+docker-up:
+	docker compose up -d --build --wait
+docker-down:
+	docker compose down
+docker-logs:
+	docker compose logs -f --tail=100 app
+docker-status:
+	docker compose ps
+docker-import-data:
+	python3 scripts/import_docker_data.py

@@ -5,6 +5,7 @@ test("selects playlist entries, downloads a file and ZIP, and preserves history"
 }) => {
   const browserErrors: string[] = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/");
   await page
     .getByLabel("Video or playlist URL")
